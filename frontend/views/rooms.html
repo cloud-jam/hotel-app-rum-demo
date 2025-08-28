@@ -1,0 +1,331 @@
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2>Rooms Management</h2>
+            <div>
+                <button class="btn btn-info me-2" ng-click="showMaintenanceMode = !showMaintenanceMode">
+                    <i class="fas fa-tools"></i> Maintenance Mode
+                </button>
+                <button class="btn btn-primary" ng-click="refreshRooms()">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Room Statistics -->
+<div class="row mt-3">
+    <div class="col-md-2">
+        <div class="card text-center border-primary">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Total Rooms</h6>
+                <h3 class="text-primary">{{ roomStats.total }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center border-success">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Available</h6>
+                <h3 class="text-success">{{ roomStats.available }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center border-warning">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Occupied</h6>
+                <h3 class="text-warning">{{ roomStats.occupied }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center border-danger">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Maintenance</h6>
+                <h3 class="text-danger">{{ roomStats.maintenance }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center border-info">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Cleaning</h6>
+                <h3 class="text-info">{{ roomStats.cleaning }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Occupancy</h6>
+                <h3>{{ roomStats.occupancyRate }}%</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters and Search -->
+<div class="row mt-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <label class="form-label">Filter by Floor</label>
+                        <select class="form-control" ng-model="filters.floor">
+                            <option value="">All Floors</option>
+                            <option value="1">Floor 1</option>
+                            <option value="2">Floor 2</option>
+                            <option value="3">Floor 3</option>
+                            <option value="4">Floor 4</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Filter by Type</label>
+                        <select class="form-control" ng-model="filters.type">
+                            <option value="">All Types</option>
+                            <option value="Standard">Standard</option>
+                            <option value="Deluxe">Deluxe</option>
+                            <option value="Suite">Suite</option>
+                            <option value="Presidential">Presidential</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Filter by Status</label>
+                        <select class="form-control" ng-model="filters.status">
+                            <option value="">All Statuses</option>
+                            <option value="vacant">Vacant</option>
+                            <option value="occupied">Occupied</option>
+                            <option value="maintenance">Maintenance</option>
+                            <option value="cleaning">Cleaning</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Search Room</label>
+                        <input type="text" class="form-control" placeholder="Room number..." 
+                               ng-model="filters.search">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Maintenance Mode Alert -->
+<div class="row mt-3" ng-if="showMaintenanceMode">
+    <div class="col-12">
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i> 
+            <strong>Maintenance Mode Active:</strong> Click on any room to change its status to maintenance or back to vacant.
+        </div>
+    </div>
+</div>
+
+<!-- Rooms Grid View -->
+<div class="row mt-3">
+    <div class="col-12">
+        <h4>Rooms Overview</h4>
+        <div class="row" ng-repeat="floor in [4, 3, 2, 1]">
+            <div class="col-12">
+                <h5 class="mt-3 mb-2">Floor {{ floor }}</h5>
+                <div class="d-flex flex-wrap">
+                    <div ng-repeat="room in getRoomsByFloor(floor) | filter:filterRooms" 
+                         class="m-1">
+                        <div class="card room-card" 
+                             ng-class="{
+                                 'border-success bg-success-subtle': room.status === 'vacant',
+                                 'border-warning bg-warning-subtle': room.status === 'occupied',
+                                 'border-danger bg-danger-subtle': room.status === 'maintenance',
+                                 'border-info bg-info-subtle': room.status === 'cleaning'
+                             }"
+                             ng-click="roomAction(room)"
+                             style="width: 120px; cursor: pointer;">
+                            <div class="card-body text-center p-2">
+                                <h5 class="card-title mb-1">{{ room.room_number }}</h5>
+                                <p class="card-text mb-1">
+                                    <small>{{ room.room_type }}</small>
+                                </p>
+                                <p class="card-text mb-1">
+                                    <span class="badge" 
+                                          ng-class="{
+                                              'bg-success': room.status === 'vacant',
+                                              'bg-warning': room.status === 'occupied',
+                                              'bg-danger': room.status === 'maintenance',
+                                              'bg-info': room.status === 'cleaning'
+                                          }">
+                                        {{ room.status | uppercase }}
+                                    </span>
+                                </p>
+                                <p class="card-text">
+                                    <small>${{ room.rate }}/night</small>
+                                </p>
+                                <p class="card-text" ng-if="room.current_guest">
+                                    <small class="text-muted">{{ room.current_guest }}</small>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Room Details Table View -->
+<div class="row mt-5">
+    <div class="col-12">
+        <h4>Room Details</h4>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Room #</th>
+                        <th>Type</th>
+                        <th>Floor</th>
+                        <th>Rate</th>
+                        <th>Status</th>
+                        <th>Current Guest</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr ng-repeat="room in rooms | filter:filterRooms | orderBy:'room_number'">
+                        <td><strong>{{ room.room_number }}</strong></td>
+                        <td>{{ room.room_type }}</td>
+                        <td>{{ room.floor }}</td>
+                        <td>${{ room.rate }}/night</td>
+                        <td>
+                            <span class="badge rounded-pill"
+                                  ng-class="{
+                                      'bg-success': room.status === 'vacant',
+                                      'bg-warning': room.status === 'occupied',
+                                      'bg-danger': room.status === 'maintenance',
+                                      'bg-info': room.status === 'cleaning'
+                                  }">
+                                {{ room.status | uppercase }}
+                            </span>
+                        </td>
+                        <td>{{ room.current_guest || '-' }}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary" 
+                                        ng-click="viewRoomDetails(room)"
+                                        title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-outline-warning"
+                                        ng-if="room.status === 'vacant'"
+                                        ng-click="changeStatus(room, 'cleaning')"
+                                        title="Mark for Cleaning">
+                                    <i class="fas fa-broom"></i>
+                                </button>
+                                <button class="btn btn-outline-danger"
+                                        ng-if="room.status === 'vacant' || room.status === 'cleaning'"
+                                        ng-click="changeStatus(room, 'maintenance')"
+                                        title="Mark for Maintenance">
+                                    <i class="fas fa-tools"></i>
+                                </button>
+                                <button class="btn btn-outline-success"
+                                        ng-if="room.status === 'maintenance' || room.status === 'cleaning'"
+                                        ng-click="changeStatus(room, 'vacant')"
+                                        title="Mark as Available">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Room Details Modal -->
+<div class="modal fade" id="roomModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Room {{ selectedRoom.room_number }} Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" ng-if="selectedRoom">
+                <dl class="row">
+                    <dt class="col-sm-4">Room Number</dt>
+                    <dd class="col-sm-8">{{ selectedRoom.room_number }}</dd>
+                    
+                    <dt class="col-sm-4">Room Type</dt>
+                    <dd class="col-sm-8">{{ selectedRoom.room_type }}</dd>
+                    
+                    <dt class="col-sm-4">Floor</dt>
+                    <dd class="col-sm-8">{{ selectedRoom.floor }}</dd>
+                    
+                    <dt class="col-sm-4">Rate</dt>
+                    <dd class="col-sm-8">${{ selectedRoom.rate }}/night</dd>
+                    
+                    <dt class="col-sm-4">Status</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge"
+                              ng-class="{
+                                  'bg-success': selectedRoom.status === 'vacant',
+                                  'bg-warning': selectedRoom.status === 'occupied',
+                                  'bg-danger': selectedRoom.status === 'maintenance',
+                                  'bg-info': selectedRoom.status === 'cleaning'
+                              }">
+                            {{ selectedRoom.status | uppercase }}
+                        </span>
+                    </dd>
+                    
+                    <dt class="col-sm-4" ng-if="selectedRoom.current_guest">Current Guest</dt>
+                    <dd class="col-sm-8" ng-if="selectedRoom.current_guest">{{ selectedRoom.current_guest }}</dd>
+                </dl>
+                
+                <div class="mt-3" ng-if="selectedRoom.status !== 'occupied'">
+                    <h6>Quick Status Change</h6>
+                    <div class="btn-group d-flex">
+                        <button class="btn btn-outline-success"
+                                ng-if="selectedRoom.status !== 'vacant'"
+                                ng-click="changeStatusFromModal('vacant')">
+                            Set Vacant
+                        </button>
+                        <button class="btn btn-outline-info"
+                                ng-if="selectedRoom.status !== 'cleaning'"
+                                ng-click="changeStatusFromModal('cleaning')">
+                            Set Cleaning
+                        </button>
+                        <button class="btn btn-outline-danger"
+                                ng-if="selectedRoom.status !== 'maintenance'"
+                                ng-click="changeStatusFromModal('maintenance')">
+                            Set Maintenance
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.room-card {
+    transition: transform 0.2s;
+}
+.room-card:hover {
+    transform: scale(1.05);
+}
+.bg-success-subtle {
+    background-color: rgba(25, 135, 84, 0.1) !important;
+}
+.bg-warning-subtle {
+    background-color: rgba(255, 193, 7, 0.1) !important;
+}
+.bg-danger-subtle {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+}
+.bg-info-subtle {
+    background-color: rgba(13, 202, 240, 0.1) !important;
+}
+</style>

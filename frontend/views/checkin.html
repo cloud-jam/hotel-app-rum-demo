@@ -1,0 +1,241 @@
+<div class="row">
+    <div class="col-12">
+        <h2>Check-In / Check-Out</h2>
+    </div>
+</div>
+
+<!-- Manual Check-In Form -->
+<div class="row mt-3">
+    <div class="col-12">
+        <div class="card bg-light">
+            <div class="card-header">
+                <h5><i class="fas fa-user-check"></i> Manual Check-In</h5>
+            </div>
+            <div class="card-body">
+                <form ng-submit="manualCheckIn()">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Confirmation Number or Guest Name</label>
+                                <input type="text" class="form-control" 
+                                       ng-model="manualCheckInForm.searchTerm"
+                                       ng-change="searchReservations()"
+                                       placeholder="Enter confirmation # or guest name"
+                                       required>
+                            </div>
+                            
+                            <div ng-if="manualCheckInForm.searchResults.length > 0" class="mt-3">
+                                <label>Select Reservation:</label>
+                                <div class="list-group">
+                                    <button type="button" 
+                                            class="list-group-item list-group-item-action"
+                                            ng-repeat="res in manualCheckInForm.searchResults"
+                                            ng-click="selectReservation(res)"
+                                            ng-class="{'active': manualCheckInForm.selectedReservation.id === res.id}">
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                <strong>{{ res.confirmation_number }}</strong> - {{ res.guest_name }}<br>
+                                                <small>Room {{ res.room_number }} | 
+                                                       Check-in: {{ res.check_in }} | 
+                                                       Status: <span class="badge badge-info">{{ res.status }}</span></small>
+                                            </div>
+                                            <div class="text-right">
+                                                <strong>${{ res.total_amount }}</strong>
+                                            </div>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6" ng-if="manualCheckInForm.selectedReservation">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    Reservation Details
+                                </div>
+                                <div class="card-body">
+                                    <dl class="row">
+                                        <dt class="col-sm-5">Confirmation:</dt>
+                                        <dd class="col-sm-7">{{ manualCheckInForm.selectedReservation.confirmation_number }}</dd>
+                                        
+                                        <dt class="col-sm-5">Guest Name:</dt>
+                                        <dd class="col-sm-7">{{ manualCheckInForm.selectedReservation.guest_name }}</dd>
+                                        
+                                        <dt class="col-sm-5">Room:</dt>
+                                        <dd class="col-sm-7">{{ manualCheckInForm.selectedReservation.room_number }} 
+                                            ({{ manualCheckInForm.selectedReservation.room_type }})</dd>
+                                        
+                                        <dt class="col-sm-5">Check-in Date:</dt>
+                                        <dd class="col-sm-7">{{ manualCheckInForm.selectedReservation.check_in }}</dd>
+                                        
+                                        <dt class="col-sm-5">Check-out Date:</dt>
+                                        <dd class="col-sm-7">{{ manualCheckInForm.selectedReservation.check_out }}</dd>
+                                        
+                                        <dt class="col-sm-5">Total Amount:</dt>
+                                        <dd class="col-sm-7">${{ manualCheckInForm.selectedReservation.total_amount }}</dd>
+                                        
+                                        <dt class="col-sm-5">Status:</dt>
+                                        <dd class="col-sm-7">
+                                            <span class="badge"
+                                                  ng-class="{
+                                                      'badge-warning': manualCheckInForm.selectedReservation.status === 'confirmed',
+                                                      'badge-success': manualCheckInForm.selectedReservation.status === 'checked_in',
+                                                      'badge-secondary': manualCheckInForm.selectedReservation.status === 'checked_out'
+                                                  }">
+                                                {{ manualCheckInForm.selectedReservation.status }}
+                                            </span>
+                                        </dd>
+                                    </dl>
+                                    
+                                    <button type="submit" 
+                                            class="btn btn-success btn-block"
+                                            ng-disabled="manualCheckInForm.selectedReservation.status !== 'confirmed' || manualCheckInForm.processing">
+                                        <span ng-if="!manualCheckInForm.processing">
+                                            <i class="fas fa-sign-in-alt"></i> Check In Guest
+                                        </span>
+                                        <span ng-if="manualCheckInForm.processing">
+                                            <span class="spinner-border spinner-border-sm"></span> Processing...
+                                        </span>
+                                    </button>
+                                    
+                                    <div ng-if="manualCheckInForm.selectedReservation.status === 'checked_in'" 
+                                         class="alert alert-info mt-2">
+                                        <i class="fas fa-info-circle"></i> Guest is already checked in
+                                    </div>
+                                    
+                                    <div ng-if="manualCheckInForm.selectedReservation.status === 'checked_out'" 
+                                         class="alert alert-secondary mt-2">
+                                        <i class="fas fa-info-circle"></i> Guest has already checked out
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions for Testing -->
+<div class="row mt-3">
+    <div class="col-12">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <h5><i class="fas fa-bolt"></i> Quick Actions (For Testing)</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <button class="btn btn-primary btn-block" ng-click="simulateCheckIn()">
+                            <i class="fas fa-magic"></i> Simulate Random Check-In
+                        </button>
+                        <small class="text-muted">Checks in a random confirmed reservation</small>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-warning btn-block" ng-click="createTestReservation()">
+                            <i class="fas fa-plus-circle"></i> Create Test Reservation
+                        </button>
+                        <small class="text-muted">Creates a new reservation for today</small>
+                    </div>
+                    <div class="col-md-4">
+                        <button class="btn btn-info btn-block" ng-click="refreshData()">
+                            <i class="fas fa-sync-alt"></i> Refresh All Data
+                        </button>
+                        <small class="text-muted">Reload all reservations and activity</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5><i class="fas fa-sign-in-alt"></i> Today's Arrivals</h5>
+            </div>
+            <div class="card-body">
+                <div ng-if="todayArrivals.length === 0" class="text-muted">
+                    No arrivals scheduled for today
+                </div>
+                <div ng-repeat="arrival in todayArrivals" class="mb-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ arrival.guest_name }}</strong><br>
+                            <small>Room {{ arrival.room_number }} | {{ arrival.nights }} nights</small>
+                        </div>
+                        <button class="btn btn-sm btn-success" ng-click="checkIn(arrival)">
+                            Check In
+                        </button>
+                    </div>
+                    <hr ng-if="!$last">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5><i class="fas fa-sign-out-alt"></i> Today's Departures</h5>
+            </div>
+            <div class="card-body">
+                <div ng-if="todayDepartures.length === 0" class="text-muted">
+                    No departures scheduled for today
+                </div>
+                <div ng-repeat="departure in todayDepartures" class="mb-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ departure.guest_name }}</strong><br>
+                            <small>Room {{ departure.room_number }} | ${{ departure.total_amount }}</small>
+                        </div>
+                        <button class="btn btn-sm btn-danger" 
+                                ng-click="checkOut(departure)"
+                                ng-disabled="processingCheckout">
+                            <span ng-if="!processingCheckout">Check Out</span>
+                            <span ng-if="processingCheckout">
+                                <span class="spinner-border spinner-border-sm"></span> Processing...
+                            </span>
+                        </button>
+                    </div>
+                    <hr ng-if="!$last">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>Guest Search</h5>
+            </div>
+            <div class="card-body">
+                <input type="text" class="form-control" placeholder="Search by name or email..." 
+                       ng-model="searchQuery" ng-change="searchGuest()">
+                
+                <div class="mt-3" ng-if="searchResults.length > 0">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr ng-repeat="guest in searchResults">
+                                <td>{{ guest.full_name }}</td>
+                                <td>{{ guest.email }}</td>
+                                <td>{{ guest.phone }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

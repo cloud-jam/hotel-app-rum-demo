@@ -1,0 +1,275 @@
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2>Reservations Management</h2>
+            <div>
+                <a href="#!/checkin" class="btn btn-success me-2">
+                    <i class="fas fa-user-check"></i> Check-In
+                </a>
+                <button class="btn btn-primary" ng-click="showNewReservation = !showNewReservation">
+                    <i class="fas fa-plus"></i> New Reservation
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mt-3">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Total Reservations</h5>
+                <h2 class="text-primary">{{ stats.total }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Confirmed</h5>
+                <h2 class="text-warning">{{ stats.confirmed }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Checked In</h5>
+                <h2 class="text-success">{{ stats.checkedIn }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Revenue</h5>
+                <h2 class="text-info">${{ stats.totalRevenue | number:2 }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-3" ng-if="showNewReservation">
+    <div class="col-12">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white">
+                <h5><i class="fas fa-calendar-plus"></i> Create New Reservation</h5>
+            </div>
+            <div class="card-body">
+                <form ng-submit="createReservation()">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Guest Information</h6>
+                            <div class="mb-3">
+                                <label class="form-label">Guest Name *</label>
+                                <input type="text" class="form-control" 
+                                       ng-model="newReservation.guest_name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Email Address *</label>
+                                <input type="email" class="form-control" 
+                                       ng-model="newReservation.guest_email" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control" 
+                                       ng-model="newReservation.guest_phone">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3">Reservation Details</h6>
+                            <div class="mb-3">
+                                <label class="form-label">Check-in Date *</label>
+                                <input type="date" class="form-control" 
+                                       ng-model="newReservation.check_in" 
+                                       ng-change="checkAvailability()"
+                                       required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Check-out Date *</label>
+                                <input type="date" class="form-control" 
+                                       ng-model="newReservation.check_out"
+                                       ng-change="checkAvailability()"
+                                       required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Select Room *</label>
+                                <select class="form-control" ng-model="newReservation.room_id" required>
+                                    <option value="">-- Select Available Room --</option>
+                                    <option ng-repeat="room in availableRooms" value="{{ room.id }}">
+                                        Room {{ room.room_number }} - {{ room.room_type }} (${{ room.rate }}/night)
+                                    </option>
+                                </select>
+                                <small class="text-muted" ng-if="checkingAvailability">
+                                    <span class="spinner-border spinner-border-sm"></span> Checking availability...
+                                </small>
+                            </div>
+                            <div class="mb-3" ng-if="newReservation.room_id && calculatedAmount">
+                                <label class="form-label">Total Amount</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="text" class="form-control" 
+                                           value="{{ calculatedAmount | number:2 }}" readonly>
+                                </div>
+                                <small class="text-muted">{{ nights }} night(s) × ${{ selectedRoom.rate }}/night</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <button type="button" class="btn btn-secondary me-2" 
+                                ng-click="cancelNewReservation()">Cancel</button>
+                        <button type="submit" class="btn btn-success" 
+                                ng-disabled="!newReservation.room_id || creatingReservation">
+                            <span ng-if="!creatingReservation">Create Reservation</span>
+                            <span ng-if="creatingReservation">
+                                <span class="spinner-border spinner-border-sm"></span> Creating...
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-3">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="btn-group" role="group">
+                <button class="btn" ng-class="{'btn-primary': statusFilter === '', 'btn-outline-primary': statusFilter !== ''}" 
+                        ng-click="filterReservations('')">All ({{ stats.total }})</button>
+                <button class="btn" ng-class="{'btn-warning': statusFilter === 'confirmed', 'btn-outline-warning': statusFilter !== 'confirmed'}"
+                        ng-click="filterReservations('confirmed')">Confirmed ({{ stats.confirmed }})</button>
+                <button class="btn" ng-class="{'btn-success': statusFilter === 'checked_in', 'btn-outline-success': statusFilter !== 'checked_in'}"
+                        ng-click="filterReservations('checked_in')">Checked In ({{ stats.checkedIn }})</button>
+                <button class="btn" ng-class="{'btn-secondary': statusFilter === 'checked_out', 'btn-outline-secondary': statusFilter !== 'checked_out'}"
+                        ng-click="filterReservations('checked_out')">Checked Out ({{ stats.checkedOut }})</button>
+            </div>
+            <div class="input-group" style="width: 300px;">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" class="form-control" placeholder="Search reservations..." 
+                       ng-model="searchText">
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 140px;">Confirmation #</th>
+                        <th>Guest</th>
+                        <th style="width: 80px;">Room</th>
+                        <th style="width: 100px;">Check-in</th>
+                        <th style="width: 100px;">Check-out</th>
+                        <th style="width: 100px;">Status</th>
+                        <th style="width: 100px;">Amount</th>
+                        <th style="width: 120px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr ng-repeat="reservation in filteredReservations = (reservations | filter:{status: statusFilter} | filter:searchText)"
+                        ng-click="viewReservationDetails(reservation)" 
+                        style="cursor: pointer;">
+                        <td>
+                            <code>{{ reservation.confirmation_number }}</code>
+                        </td>
+                        <td>
+                            <strong>{{ reservation.guest_name }}</strong><br>
+                            <small class="text-muted">{{ reservation.guest_email }}</small>
+                        </td>
+                        <td>{{ reservation.room_number }}</td>
+                        <td>{{ reservation.check_in | date:'MMM d' }}</td>
+                        <td>{{ reservation.check_out | date:'MMM d' }}</td>
+                        <td>
+                            <span class="badge rounded-pill" 
+                                  ng-class="{'bg-warning': reservation.status === 'confirmed',
+                                            'bg-success': reservation.status === 'checked_in',
+                                            'bg-secondary': reservation.status === 'checked_out'}">
+                                <i class="fas" ng-class="{'fa-clock': reservation.status === 'confirmed',
+                                                         'fa-check': reservation.status === 'checked_in',
+                                                         'fa-door-open': reservation.status === 'checked_out'}"></i>
+                                {{ reservation.status | uppercase }}
+                            </span>
+                        </td>
+                        <td>${{ reservation.total_amount | number:2 }}</td>
+                        <td ng-click="$event.stopPropagation()">
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary" 
+                                        ng-click="viewReservationDetails(reservation)"
+                                        title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-outline-success" 
+                                        ng-if="reservation.status === 'confirmed'"
+                                        ng-click="quickCheckIn(reservation)"
+                                        title="Quick Check-In">
+                                    <i class="fas fa-sign-in-alt"></i>
+                                </button>
+                                <button class="btn btn-outline-danger" 
+                                        ng-if="reservation.status === 'confirmed'"
+                                        ng-click="cancelReservation(reservation)"
+                                        title="Cancel Reservation">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr ng-if="filteredReservations.length === 0">
+                        <td colspan="8" class="text-center text-muted py-4">
+                            <i class="fas fa-search fa-2x mb-2"></i><br>
+                            No reservations found
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Reservation Details Modal -->
+<div class="modal fade" id="reservationModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Reservation Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" ng-if="selectedReservation">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Guest Information</h6>
+                        <dl>
+                            <dt>Name</dt>
+                            <dd>{{ selectedReservation.guest_name }}</dd>
+                            <dt>Email</dt>
+                            <dd>{{ selectedReservation.guest_email }}</dd>
+                            <dt>Confirmation Number</dt>
+                            <dd><code>{{ selectedReservation.confirmation_number }}</code></dd>
+                        </dl>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted">Booking Details</h6>
+                        <dl>
+                            <dt>Room</dt>
+                            <dd>{{ selectedReservation.room_number }} ({{ selectedReservation.room_type }})</dd>
+                            <dt>Check-in</dt>
+                            <dd>{{ selectedReservation.check_in | date:'fullDate' }}</dd>
+                            <dt>Check-out</dt>
+                            <dd>{{ selectedReservation.check_out | date:'fullDate' }}</dd>
+                            <dt>Total Amount</dt>
+                            <dd class="h4">${{ selectedReservation.total_amount | number:2 }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

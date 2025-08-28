@@ -1,0 +1,108 @@
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2>Hotel Dashboard</h2>
+                <p class="text-muted">Last updated: {{ lastUpdated | date:'medium' }}</p>
+            </div>
+            <div>
+                <a href="#!/checkin" class="btn btn-success btn-lg">
+                    <i class="fas fa-user-check"></i> Check-In Guest
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-3" ng-if="!loading">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h5 class="card-title">Total Rooms</h5>
+                <h2>{{ stats.total_rooms }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <h5 class="card-title">Occupied</h5>
+                <h2>{{ stats.occupied_rooms }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <h5 class="card-title">Available</h5>
+                <h2>{{ stats.truly_available_rooms }}</h2>
+                <small>Out of {{ stats.available_rooms }} vacant</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h5 class="card-title">Occupancy Rate</h5>
+                <h2>{{ stats.occupancy_rate }}%</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4" ng-if="!loading">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Today's Activity</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6">
+                        <i class="fas fa-sign-in-alt text-success"></i> Arrivals: {{ stats.today_arrivals }}
+                    </div>
+                    <div class="col-6">
+                        <i class="fas fa-sign-out-alt text-danger"></i> Departures: {{ stats.today_departures }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Reservation Status</h5>
+            </div>
+            <div class="card-body">
+                <small class="d-block"><i class="fas fa-check text-success"></i> Checked In: {{ stats.checked_in_rooms }}</small>
+                <small class="d-block"><i class="fas fa-calendar text-warning"></i> Confirmed: {{ stats.confirmed_rooms }}</small>
+                <small class="d-block"><i class="fas fa-hotel text-info"></i> Total Reserved: {{ stats.reserved_rooms }}</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Revenue</h5>
+            </div>
+            <div class="card-body">
+                <h4>${{ stats.revenue_today | number:2 }}</h4>
+                <small class="text-muted">Today's Revenue</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <button class="btn btn-danger btn-sm" ng-click="testError()">
+            <i class="fas fa-bug"></i> Test Error Simulation
+        </button>
+    </div>
+</div>
+
+<div class="text-center mt-5" ng-if="loading">
+    <div class="spinner-border" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+</div>

@@ -1,0 +1,128 @@
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white text-center">
+                <h3><i class="fas fa-hotel"></i> SNT Hotel Management Platform</h3>
+                <p class="mb-0">Admin Portal</p>
+            </div>
+            <div class="card-body p-4">
+                <!-- Quick Search Section -->
+                <div class="mb-4">
+                    <label class="form-label">
+                        <i class="fas fa-search"></i> Quick Search
+                    </label>
+                    <div class="position-relative">
+                        <input type="text" 
+                               class="form-control" 
+                               ng-model="searchQuery" 
+                               ng-change="searchGuests()"
+                               ng-blur="hideSearchResults()"
+                               placeholder="Search by name, email, or reservation #">
+                        
+                        <!-- Search spinner -->
+                        <div class="position-absolute top-50 end-0 translate-middle-y me-3" ng-show="isSearching">
+                            <span class="spinner-border spinner-border-sm text-primary"></span>
+                        </div>
+                        
+                        <!-- Search results dropdown -->
+                        <div class="search-results-dropdown position-absolute w-100 mt-1" 
+                             ng-show="showSearchResults && searchResults.length > 0">
+                            <div class="list-group shadow-sm">
+                                <button type="button" 
+                                        class="list-group-item list-group-item-action"
+                                        ng-repeat="result in searchResults"
+                                        ng-click="selectSearchResult(result)">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <div class="fw-bold">{{ result.guest_name }}</div>
+                                            <small class="text-muted">{{ result.email }}</small>
+                                            <div ng-if="result.reservation_number">
+                                                <span class="badge bg-primary">{{ result.reservation_number }}</span>
+                                                <span class="badge bg-secondary ms-1" ng-if="result.status">{{ result.status }}</span>
+                                            </div>
+                                        </div>
+                                        <small class="text-muted" ng-if="result.type === 'guest'">
+                                            <i class="fas fa-user"></i>
+                                        </small>
+                                        <small class="text-muted" ng-if="result.type === 'reservation'">
+                                            <i class="fas fa-bed"></i>
+                                        </small>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <small class="text-muted">Start typing to search existing guests or reservations</small>
+                </div>
+                
+                <div class="text-center text-muted mb-3">
+                    <small>— OR enter details manually —</small>
+                </div>
+                
+                <form name="loginForm" ng-submit="login()">
+                    <div class="mb-3">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" 
+                               class="form-control form-control-lg" 
+                               ng-model="loginData.fullName" 
+                               placeholder="John Smith"
+                               required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" 
+                               class="form-control form-control-lg" 
+                               ng-model="loginData.email" 
+                               placeholder="john.smith@email.com"
+                               required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Reservation Number</label>
+                        <input type="text" 
+                               class="form-control form-control-lg" 
+                               ng-model="loginData.reservationNumber" 
+                               placeholder="HTL123456"
+                               style="text-transform: uppercase;">
+                        <small class="text-muted">Optional - Enter if you have an existing reservation</small>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" 
+                                class="btn btn-primary btn-lg"
+                                style="background-color: #24C292; border-color: #24C292;"
+                                ng-disabled="loginForm.$invalid || isLoading">
+                            <span ng-if="!isLoading">
+                                <i class="fas fa-sign-in-alt"></i> Continue
+                            </span>
+                            <span ng-if="isLoading">
+                                <span class="spinner-border spinner-border-sm"></span> Logging in...
+                            </span>
+                        </button>
+                    </div>
+                </form>
+                
+                <hr class="my-4">
+                
+                <div class="text-center text-muted">
+                    <small>Demo Mode: Enter any name/email to explore the system</small>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Demo info card -->
+        <div class="card mt-3 border-info">
+            <div class="card-body">
+                <h6 class="card-title text-info">
+                    <i class="fas fa-info-circle"></i> Demo Information
+                </h6>
+                <small class="text-muted">
+                    This login page enables session tracking for monitoring purposes. 
+                    Your information will be attached to all actions you take in the system,
+                    making it easier to track user journeys and debug issues.
+                </small>
+            </div>
+        </div>
+    </div>
+</div>

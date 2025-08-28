@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hotel PMS Traffic Simulator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+        
+        .controls input, .controls select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .controls button {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .controls button:hover {
+            background-color: #0056b3;
+        }
+        
+        .controls button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .stat-card h3 {
+            margin: 0 0 10px 0;
+            color: #495057;
+            font-size: 14px;
+        }
+        
+        .stat-card .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #212529;
+        }
+        
+        .logs {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .log-entry {
+            margin: 2px 0;
+        }
+        
+        .log-success {
+            color: #28a745;
+        }
+        
+        .log-error {
+            color: #dc3545;
+        }
+        
+        .log-info {
+            color: #17a2b8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Hotel PMS Traffic Simulator</h1>
+        
+        <div class="controls">
+            <label>Users: <input type="number" id="numUsers" value="5" min="1" max="50"></label>
+            <label>Request Interval (ms): <input type="number" id="interval" value="2000" min="500" max="10000"></label>
+            <label>Scenario: 
+                <select id="scenario">
+                    <option value="mixed">Mixed (All scenarios)</option>
+                    <option value="browsing">Room Browsing</option>
+                    <option value="booking">Booking Flow</option>
+                    <option value="dashboard">Dashboard Monitoring</option>
+                </select>
+            </label>
+            <button id="startBtn" onclick="toggleSimulation()">Start Simulation</button>
+            <button onclick="clearStats()">Clear Stats</button>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <h3>Total Requests</h3>
+                <div class="value" id="totalRequests">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Success Rate</h3>
+                <div class="value" id="successRate">0%</div>
+            </div>
+            <div class="stat-card">
+                <h3>Errors</h3>
+                <div class="value" id="errorCount">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Avg Response Time</h3>
+                <div class="value" id="avgResponseTime">0ms</div>
+            </div>
+            <div class="stat-card">
+                <h3>Active Users</h3>
+                <div class="value" id="activeUsers">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Requests/sec</h3>
+                <div class="value" id="requestsPerSec">0</div>
+            </div>
+        </div>
+        
+        <h3>Activity Log</h3>
+        <div class="logs" id="logs"></div>
+    </div>
+
+    <script>
+        let isRunning = false;
+        let users = [];
+        let stats = {
+            totalRequests: 0,
+            successCount: 0,
+            errorCount: 0,
+            totalResponseTime: 0,
+            startTime: null
+        };
+
+        const API_BASE = '/api';
+
+        // Scenarios
+        const scenarios = {
+            browsing: [
+                { method: 'GET', path: '/rooms', name: 'Browse Rooms' },
+                { method: 'GET', path: '/dashboard/stats', name: 'View Dashboard' },
+                { method: 'GET', path: '/rooms', name: 'Browse Rooms' }
+            ],
+            booking: [
+                { method: 'GET', path: '/rooms', name: 'Browse Rooms' },
+                { method: 'GET', path: '/rooms/available?check_in=2025-09-01&check_out=2025-09-03', name: 'Check Availability' },
+                { method: 'GET', path: '/guests/search?q=John', name: 'Search Guest' }
+            ],
+            dashboard: [
+                { method: 'GET', path: '/dashboard/stats', name: 'Monitor Dashboard' },
+                { method: 'GET', path: '/reservations', name: 'View Reservations' },
+                { method: 'GET', path: '/dashboard/stats', name: 'Monitor Dashboard' }
+            ],
+            mixed: []
+        };
+
+        // Combine all scenarios for mixed mode
+        scenarios.mixed = [
+            ...scenarios.browsing,
+            ...scenarios.booking,
+            ...scenarios.dashboard,
+            { method: 'GET', path: '/simulate/error', name: 'Error Test' }
+        ];
+
+        async function makeRequest(method, path, name) {
+            const startTime = Date.now();
+            try {
+                const response = await fetch(API_BASE + path, { method });
+                const duration = Date.now() - startTime;
+                
+                stats.totalRequests++;
+                stats.totalResponseTime += duration;
+                
+                if (response.ok) {
+                    stats.successCount++;
+                    log(`✓ User ${this.id}: ${name} - ${response.status} (${duration}ms)`, 'success');
+                } else {
+                    stats.errorCount++;
+                    log(`✗ User ${this.id}: ${name} - ${response.status} (${duration}ms)`, 'error');
+                }
+                
+                updateStats();
+            } catch (error) {
+                stats.totalRequests++;
+                stats.errorCount++;
+                log(`✗ User ${this.id}: ${name} - Error: ${error.message}`, 'error');
+                updateStats();
+            }
+        }
+
+        async function simulateUser(userId) {
+            const user = {
+                id: userId,
+                active: true,
+                actionIndex: 0
+            };
+            
+            const scenarioName = document.getElementById('scenario').value;
+            const actions = scenarios[scenarioName];
+            const interval = parseInt(document.getElementById('interval').value);
+            
+            log(`User ${userId} started session`, 'info');
+            
+            while (user.active && isRunning) {
+                const action = actions[user.actionIndex % actions.length];
+                await makeRequest.call(user, action.method, action.path, action.name);
+                
+                user.actionIndex++;
+                
+                // Wait before next action with some randomness
+                const waitTime = interval + Math.random() * interval * 0.5;
+                await new Promise(resolve => setTimeout(resolve, waitTime));
+            }
+            
+            log(`User ${userId} ended session`, 'info');
+        }
+
+        function toggleSimulation() {
+            if (isRunning) {
+                stopSimulation();
+            } else {
+                startSimulation();
+            }
+        }
+
+        function startSimulation() {
+            isRunning = true;
+            stats.startTime = Date.now();
+            const numUsers = parseInt(document.getElementById('numUsers').value);
+            
+            document.getElementById('startBtn').textContent = 'Stop Simulation';
+            document.getElementById('numUsers').disabled = true;
+            document.getElementById('interval').disabled = true;
+            document.getElementById('scenario').disabled = true;
+            
+            // Start user simulations
+            for (let i = 1; i <= numUsers; i++) {
+                setTimeout(() => {
+                    if (isRunning) {
+                        simulateUser(i);
+                    }
+                }, i * 200); // Stagger user starts
+            }
+            
+            updateActiveUsers(numUsers);
+        }
+
+        function stopSimulation() {
+            isRunning = false;
+            document.getElementById('startBtn').textContent = 'Start Simulation';
+            document.getElementById('numUsers').disabled = false;
+            document.getElementById('interval').disabled = false;
+            document.getElementById('scenario').disabled = false;
+            updateActiveUsers(0);
+        }
+
+        function updateStats() {
+            document.getElementById('totalRequests').textContent = stats.totalRequests;
+            document.getElementById('errorCount').textContent = stats.errorCount;
+            
+            const successRate = stats.totalRequests > 0 
+                ? ((stats.successCount / stats.totalRequests) * 100).toFixed(1)
+                : 0;
+            document.getElementById('successRate').textContent = successRate + '%';
+            
+            const avgResponseTime = stats.totalRequests > 0
+                ? Math.round(stats.totalResponseTime / stats.totalRequests)
+                : 0;
+            document.getElementById('avgResponseTime').textContent = avgResponseTime + 'ms';
+            
+            if (stats.startTime && isRunning) {
+                const elapsedSeconds = (Date.now() - stats.startTime) / 1000;
+                const requestsPerSec = elapsedSeconds > 0 
+                    ? (stats.totalRequests / elapsedSeconds).toFixed(2)
+                    : 0;
+                document.getElementById('requestsPerSec').textContent = requestsPerSec;
+            }
+        }
+
+        function updateActiveUsers(count) {
+            document.getElementById('activeUsers').textContent = count;
+        }
+
+        function clearStats() {
+            stats = {
+                totalRequests: 0,
+                successCount: 0,
+                errorCount: 0,
+                totalResponseTime: 0,
+                startTime: null
+            };
+            updateStats();
+            document.getElementById('logs').innerHTML = '';
+            document.getElementById('requestsPerSec').textContent = '0';
+        }
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            
+            const logsContainer = document.getElementById('logs');
+            logsContainer.appendChild(logEntry);
+            logsContainer.scrollTop = logsContainer.scrollHeight;
+            
+            // Keep only last 100 entries
+            while (logsContainer.children.length > 100) {
+                logsContainer.removeChild(logsContainer.firstChild);
+            }
+        }
+
+        // Update stats every second while running
+        setInterval(() => {
+            if (isRunning) {
+                updateStats();
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
